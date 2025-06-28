@@ -472,7 +472,3 @@ npm run demo
 - Use the connection test to verify API access
 - Validate schemas before extraction
 - Monitor processing statistics for insights
-
-## 📄 License
-
-ISC License
