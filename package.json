@@ -1,0 +1,42 @@
+{
+  "name": "extract-node-sdk",
+  "version": "1.0.0",
+  "description": "A simple and powerful Node.js SDK for extracting structured data from PDF documents using AI",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node example-complete-ddd.js",
+    "test": "jest",
+    "test:unit": "jest tests/unit",
+    "test:watch": "jest --watch",
+    "example": "node example-complete-ddd.js",
+    "example:simple": "node examples/simple-usage.js",
+    "example:api": "node test-real-api.js",
+    "example:extraction": "node test-extraction.js",
+    "example:getting-started": "node examples/getting-started.js",
+    "create:test-file": "node create-test-file.js",
+    "demo": "node example-complete-ddd.js",
+    "test:real": "node test-real-api.js"
+  },
+  "keywords": [
+    "document-ai",
+    "pdf-extraction",
+    "ai",
+    "landing-ai",
+    "ocr",
+    "document-processing"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.10.0",
+    "form-data": "^4.0.3",
+    "zod": "^3.25.67",
+    "zod-to-json-schema": "^3.24.6"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
