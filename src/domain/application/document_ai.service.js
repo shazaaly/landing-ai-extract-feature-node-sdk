@@ -6,11 +6,9 @@ const { DocumentAIRepository } = require('../../infrastructure/repositories/docu
 
 class DocumentAIService {
     constructor(config) {
-        // Delegate all API configuration to repository
         this.repository = new DocumentAIRepository(config);
         this.batchService = new BatchProcessingService();
 
-        // Processing state
         this.results = new Map();
         this.errors = new Map();
     }

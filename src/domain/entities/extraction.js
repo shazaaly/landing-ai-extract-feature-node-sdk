@@ -381,6 +381,32 @@ class ExtractionResult {
       violations,
     };
   }
+
+  validateData(data) {
+    try {
+        const zodSchema = this.toZodSchema();
+        const validatedData = zodSchema.parse(data);
+
+        return {
+            isValid: true,
+            data: validatedData,
+            errors: []
+        };
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return {
+                isValid: false,
+                data: null,
+                errors: error.errors.map(err => ({
+                    field: err.path.join('.'),
+                    message: err.message,
+                    code: err.code
+                }))
+            };
+        }
+        throw error;
+    }
+  }
 }
 
 module.exports = { ExtractionResult };
