@@ -6,7 +6,7 @@ class DocumentAIRepository {
     constructor(config) {
         this.config = {
             apiKey: config.apiKey,
-            baseUrl: config.baseUrl || 'https://api.va.staging.landing.ai/v1/tools/agentic-document-analysis',
+            baseUrl: config.baseUrl || 'https://api.va.landing.ai/v1/tools/agentic-document-analysis',
             timeout: config.timeout || 30000,
             maxRetries: config.maxRetries || 3,
             retryDelay: config.retryDelay || 1000,
@@ -199,36 +199,43 @@ class DocumentAIRepository {
             switch (status) {
                 case 401:
                     return new Error('Invalid API key. Please check your credentials.');
-                case 400:
-                    return new Error(`Invalid request: ${data.message || 'Check your schema and file format.'}`);
+                case 403:
+                    return new Error('Access denied. Please check your API permissions.');
+                case 404:
+                    return new Error('API endpoint not found. Please check the base URL.');
                 case 413:
-                    return new Error('File too large. Maximum file size is 50MB.');
+                    return new Error('File too large. Please use a smaller file.');
                 case 429:
                     return new Error('Rate limit exceeded. Please try again later.');
                 case 500:
                     return new Error('Internal server error. Please try again later.');
+                case 502:
+                case 503:
+                case 504:
+                    return new Error('Service temporarily unavailable. Please try again later.');
                 default:
-                    return new Error(`API Error (${status}): ${data.message || 'Unknown error occurred.'}`);
+                    return new Error(`API error (${status}): ${data?.message || data?.error || 'Unknown error'}`);
             }
         }
 
-        if (error.code === 'ENOENT') {
-            return new Error(`File not found: ${document.filePath.value}`);
+        if (error.code === 'ENOTFOUND') {
+            return new Error('Network error: Could not connect to API server.');
         }
 
         if (error.code === 'ECONNABORTED') {
             return new Error('Request timeout. Please try again.');
         }
 
-        if (error.code === 'ENOTFOUND') {
-            return new Error('Network error. Please check your internet connection.');
+        if (error.code === 'ENOENT') {
+            return new Error(`File not found: ${document.filePath.value}`);
         }
 
-        return new Error(`Extraction failed: ${error.message}`);
+        // Return original error if no specific handling
+        return error;
     }
 
     /**
-     * Utility method for sleep/delay
+     * Sleep utility for retry delays
      */
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
@@ -239,57 +246,39 @@ class DocumentAIRepository {
      */
     async testConnection() {
         try {
-            // Try to make a simple request to test connectivity
-            // Since there might not be a status endpoint, we'll test with a minimal request
             const response = await this.httpClient.get('', {
-                timeout: 5000,
-                validateStatus: function (status) {
-                    // Accept any status code as it means we can reach the API
-                    return status >= 200 && status < 600;
-                }
+                timeout: 10000 // Shorter timeout for connection test
             });
 
             return {
                 success: true,
                 message: 'Connection successful',
-                status: response.status
+                status: response.status,
+                data: response.data
             };
+
         } catch (error) {
-            // If it's a 401, it means the API is reachable but auth failed
             if (error.response?.status === 401) {
                 return {
-                    success: true,
-                    message: 'API reachable but authentication failed - check your API key',
-                    status: 401
+                    success: false,
+                    message: 'Invalid API key',
+                    status: error.response.status
                 };
             }
 
-            // If it's a 404, it might mean the endpoint doesn't exist but API is reachable
-            if (error.response?.status === 404) {
+            if (error.code === 'ENOTFOUND') {
                 return {
-                    success: true,
-                    message: 'API reachable but endpoint not found - this is normal',
-                    status: 404
+                    success: false,
+                    message: 'Could not connect to API server',
+                    status: 'NETWORK_ERROR'
                 };
             }
 
             return {
                 success: false,
                 message: error.message,
-                status: error.response?.status
+                status: error.response?.status || 'UNKNOWN_ERROR'
             };
-        }
-    }
-
-    /**
-     * Get API status
-     */
-    async getStatus() {
-        try {
-            const response = await this.httpClient.get('/status');
-            return response.data;
-        } catch (error) {
-            throw new Error(`Failed to get API status: ${error.message}`);
         }
     }
 
@@ -301,7 +290,8 @@ class DocumentAIRepository {
             baseUrl: this.config.baseUrl,
             timeout: this.config.timeout,
             maxRetries: this.config.maxRetries,
-            retryDelay: this.config.retryDelay
+            retryDelay: this.config.retryDelay,
+            hasApiKey: !!this.config.apiKey
         };
     }
 }

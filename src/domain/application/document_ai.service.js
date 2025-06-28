@@ -6,21 +6,11 @@ const { DocumentAIRepository } = require('../../infrastructure/repositories/docu
 
 class DocumentAIService {
     constructor(config) {
-        this.config = {
-            apiKey: config.apiKey,
-            baseUrl: 'https://api.va.landing.ai/v1/tools/agentic-document-analysis',
-            timeout: config.timeout || 30000,
-            maxRetries: config.maxRetries || 3,
-            retryDelay: config.retryDelay || 1000,
-            ...config
-        };
-
-        // Initialize dependencies
-        this.repository = new DocumentAIRepository(this.config);
+        // Delegate all API configuration to repository
+        this.repository = new DocumentAIRepository(config);
         this.batchService = new BatchProcessingService();
 
         // Processing state
-        this.processingQueue = [];
         this.results = new Map();
         this.errors = new Map();
     }
@@ -228,31 +218,36 @@ class DocumentAIService {
      * Get all errors
      */
     getAllErrors() {
-        return Array.from(this.errors.entries()).map(([id, error]) => ({
-            documentId: id,
-            ...error
-        }));
+        return Array.from(this.errors.values());
     }
 
     /**
      * Get processing statistics
      */
     getProcessingStats() {
-        const results = this.getAllResults();
-        const errors = this.getAllErrors();
+        const totalProcessed = this.results.size + this.errors.size;
+        const successful = this.results.size;
+        const failed = this.errors.size;
+        const successRate = totalProcessed > 0 ? (successful / totalProcessed) * 100 : 0;
+
+        // Calculate average confidence
+        let totalConfidence = 0;
+        let totalProcessingTime = 0;
+        let count = 0;
+
+        for (const result of this.results.values()) {
+            totalConfidence += result.confidence;
+            totalProcessingTime += result.processingTime;
+            count++;
+        }
 
         return {
-            totalProcessed: results.length + errors.length,
-            successful: results.length,
-            failed: errors.length,
-            successRate: results.length / (results.length + errors.length) * 100,
-            averageConfidence: results.length > 0
-                ? results.reduce((sum, r) => sum + r.confidence, 0) / results.length
-                : 0,
-            averageProcessingTime: results.length > 0
-                ? results.reduce((sum, r) => sum + r.processingTime, 0) / results.length
-                : 0,
-            batchStats: this.batchService.getBatchStats()
+            totalProcessed,
+            successful,
+            failed,
+            successRate,
+            averageConfidence: count > 0 ? totalConfidence / count : 0,
+            averageProcessingTime: count > 0 ? totalProcessingTime / count : 0
         };
     }
 
@@ -262,7 +257,6 @@ class DocumentAIService {
     clearResults() {
         this.results.clear();
         this.errors.clear();
-        this.batchService.clearResults();
     }
 
     /**
@@ -273,26 +267,23 @@ class DocumentAIService {
     }
 
     /**
-     * Get service configuration
+     * Get configuration
      */
     getConfiguration() {
-        return {
-            ...this.config,
-            repository: this.repository.getConfiguration(),
-            batchService: this.batchService.getBatchStats().configuration
-        };
+        return this.repository.getConfiguration();
     }
 
     /**
-     * Validate schema before processing
+     * Validate schema
      */
     validateSchema(schemaDefinition) {
         try {
             const schema = this.createSchema(schemaDefinition);
             return {
                 isValid: true,
-                schema: schema,
-                summary: schema.getSummary()
+                summary: schema.getSummary(),
+                fieldCount: schema.getFieldNames().length,
+                requiredFields: schema.getRequiredFields()
             };
         } catch (error) {
             return {
@@ -309,21 +300,17 @@ class DocumentAIService {
         return {
             pdf: ['application/pdf'],
             images: [
-                'image/jpeg', 'image/png', 'image/tiff', 'image/bmp',
-                'image/gif', 'image/webp', 'image/jp2', 'image/jpm',
-                'image/mj2', 'image/x-tga', 'image/x-exr',
-                'image/vnd.radiance', 'image/x-pict'
-            ],
-            extensions: [
-                '.pdf', '.jpg', '.jpeg', '.png', '.tiff', '.tif',
-                '.bmp', '.gif', '.webp', '.jp2', '.j2k', '.jpx',
-                '.jpf', '.jpm', '.mj2', '.tga', '.exr', '.hdr', '.pic'
+                'image/jpeg', 'image/jpg', 'image/png', 'image/tiff', 'image/tif',
+                'image/bmp', 'image/gif', 'image/webp', 'image/jp2', 'image/j2k',
+                'image/jpx', 'image/jpf', 'image/jpm', 'image/mj2', 'image/tga',
+                'image/x-exr', 'image/vnd.radiance', 'image/x-portable-pixmap',
+                'image/x-portable-graymap', 'image/x-portable-bitmap'
             ]
         };
     }
 
     /**
-     * Create a simple schema from field names
+     * Create simple schema from field names
      */
     createSimpleSchema(fieldNames, options = {}) {
         const fields = {};
@@ -332,13 +319,13 @@ class DocumentAIService {
         for (const fieldName of fieldNames) {
             fields[fieldName] = {
                 type: options.defaultType || 'string',
-                validation: options.validationRules?.[fieldName]
+                ...options.fieldOptions
             };
         }
 
         return new Schema(fields, {
             required,
-            additionalProperties: options.additionalProperties,
+            additionalProperties: options.additionalProperties || false,
             version: options.version || '1.0.0'
         });
     }
