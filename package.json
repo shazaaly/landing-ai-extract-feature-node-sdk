@@ -1,21 +1,14 @@
 {
   "name": "extract-node-sdk",
   "version": "1.0.0",
-  "description": "A simple and powerful Node.js SDK for extracting structured data from PDF documents using AI",
+  "description": "A powerful, domain-driven Node.js SDK for extracting structured data from PDF documents and images using AI",
   "main": "src/index.js",
   "scripts": {
-    "start": "node example-complete-ddd.js",
     "test": "jest",
     "test:unit": "jest tests/unit",
     "test:watch": "jest --watch",
-    "example": "node example-complete-ddd.js",
-    "example:simple": "node examples/simple-usage.js",
-    "example:api": "node test-real-api.js",
-    "example:extraction": "node test-extraction.js",
     "example:getting-started": "node examples/getting-started.js",
-    "create:test-file": "node create-test-file.js",
-    "demo": "node example-complete-ddd.js",
-    "test:real": "node test-real-api.js"
+    "demo": "node index.js"
   },
   "keywords": [
     "document-ai",
@@ -23,7 +16,9 @@
     "ai",
     "landing-ai",
     "ocr",
-    "document-processing"
+    "document-processing",
+    "image-processing",
+    "batch-processing"
   ],
   "author": "",
   "license": "ISC",

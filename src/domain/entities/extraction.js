@@ -31,11 +31,8 @@ class ExtractionResult {
     if (!validation.isValid) {
       this.status = "failed";
       this.errors = validation.errors;
-      throw new Error(
-        `Extraction validation failed: ${validation.errors
-          .map((e) => e.message)
-          .join(", ")}`
-      );
+      // Don't throw error, just mark as failed for testing and analysis purposes
+      return validation;
     }
 
     // Update extracted data with validated data

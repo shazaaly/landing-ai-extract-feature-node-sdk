@@ -377,63 +377,29 @@ if (result.success) {
 - HTTP and HTTPS protocols
 - Must point to supported file types
 
-## ⚙️ Advanced Configuration
+## 🧪 Testing & Examples
 
-### Batch Processing Settings
-
-```javascript
-// Set via environment variables
-process.env.BATCH_SIZE = '4';              // Files per batch
-process.env.MAX_WORKERS = '2';             // Workers per batch
-process.env.MAX_RETRIES = '80';            // Max retries
-process.env.MAX_RETRY_WAIT_TIME = '30';    // Max wait time (seconds)
-process.env.RETRY_LOGGING_STYLE = 'log_msg'; // Logging style
-```
-
-### Custom Error Handling
-
-```javascript
-class DocumentAIError extends Error {
-    constructor(message, code, details) {
-        super(message);
-        this.code = code;
-        this.details = details;
-    }
-}
-
-// Handle specific error types
-try {
-    const result = await docAI.extract('./document.pdf', schema);
-} catch (error) {
-    if (error.message.includes('API key')) {
-        throw new DocumentAIError('Invalid API key', 'AUTH_ERROR', { apiKey: 'invalid' });
-    } else if (error.message.includes('File not found')) {
-        throw new DocumentAIError('File not found', 'FILE_ERROR', { path: './document.pdf' });
-    }
-    throw error;
-}
-```
-
-## 🧪 Testing
-
-### Unit Tests
+### Run Examples
 
 ```bash
+# Interactive getting started guide
+npm run example:getting-started
+
+# Run unit tests
 npm test
-```
-
-### Integration Tests
-
-```bash
-# Test with real API
-npm run example:extraction
-
-# Test basic functionality
-npm run example:simple
 
 # Run complete demo
 npm run demo
 ```
+
+### Getting Started Example
+
+The `examples/getting-started.js` file provides an interactive tutorial that:
+- Guides you through setup
+- Tests your API connection
+- Creates a test PDF file
+- Demonstrates extraction
+- Shows detailed results
 
 ## 📈 Performance Tips
 
@@ -472,3 +438,17 @@ npm run demo
 - Use the connection test to verify API access
 - Validate schemas before extraction
 - Monitor processing statistics for insights
+
+## 🏗️ Architecture
+
+This SDK is built using Domain-Driven Design (DDD) principles:
+
+- **Domain Entities**: Document, Schema, ExtractionResult
+- **Value Objects**: FilePath
+- **Domain Services**: BatchProcessingService
+- **Application Services**: DocumentAIService
+- **Infrastructure**: Repository pattern for API calls
+
+## 📄 License
+
+ISC License
